@@ -4,16 +4,22 @@ EMPTY_SPACE = '-'
 HORIZONTAL = "horizontal"
 VERTICAL = "vertical"
 
+
 class Car:
-    def __init__(self, char, orient, length):
+    def __init__(self, char, orient, length, startPos, endPos):
         self.character = char
         self.orientation = orient
         self.length = length
+        self.startPos = startPos
+        self.endPos = endPos
 
     def printCar(self):
         print("Character: ", self.character)
         print("Orientation: ", self.orientation)
         print("Length: ", self.length)
+        print("Start Position: ", self.startPos)
+        print("End Position: ", self.endPos)
+
 
 class Board:
     def __init__(self, start):
@@ -43,12 +49,22 @@ class Board:
                     # get car length and mark visited
                     length = self.getCarLength(
                         i, j, orientation, character, visitedBoard)
-                    
-                    car = Car(character, orientation, length)
+
+                    # get start and end positions
+                    startPos = [i, j]
+                    endPos = self.getEndPos(i, j, orientation, length)
+
+                    car = Car(character, orientation, length, startPos, endPos)
                     self.cars.append(car)
 
                 visitedBoard[i][j] = True
-        
+
+    def getEndPos(self, i, j, orient, length):
+        if (orient == HORIZONTAL):
+            return [i, j + length - 1]
+        elif (orient == VERTICAL):
+            return [i + length - 1, j]
+
     def getCarLength(self, i, j, orient, char, visited):
         length = 1
         if (orient == HORIZONTAL):
@@ -87,10 +103,11 @@ class Board:
         return board
 
     def printBoard(self):
-        for row in self.board:
-            print(row)
+        for i, row in enumerate(self.board):
+            print(i, row)
 
 
 def rushhour(heuristic, start):
     game = Board(start)
+    game.printBoard()
     game.parseBoard()
