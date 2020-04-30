@@ -1,8 +1,13 @@
 # COMMAND: rushhour(0, ["--B---","--B---","XXB---","--AA--","------","------"])
+# COMMAND: rushhour(0, ["--B---","--B---","--B-XX","--AA--","------","------"])
 
 EMPTY_SPACE = '-'
 HORIZONTAL = "horizontal"
 VERTICAL = "vertical"
+RIGHT = "right"
+LEFT = "left"
+UP = "up"
+DOWN = "down"
 
 
 class Car:
@@ -23,12 +28,20 @@ class Car:
 
 class Board:
     def __init__(self, start):
-        self.board = start
+        self.board = self.parseBoard(start)
         self.width = 6
         self.height = 6
-        self.cars = []
+        self.cars = dict()
 
-    def parseBoard(self):
+    def parseBoard(self, start):
+        board = []
+
+        for row in start:
+            board.append(list(row))
+
+        return board
+
+    def parseCars(self):
         # create boolean board
         visitedBoard = self.createBooleanBoard()
 
@@ -55,9 +68,48 @@ class Board:
                     endPos = self.getEndPos(i, j, orientation, length)
 
                     car = Car(character, orientation, length, startPos, endPos)
-                    self.cars.append(car)
+                    # self.cars.append(car)
+                    self.cars[character] = car
 
                 visitedBoard[i][j] = True
+
+    def moveCar(self, char, direction):
+
+        car = self.cars[char]
+        startX = car.startPos[0]
+        startY = car.startPos[1]
+        endX = car.endPos[0]
+        endY = car.endPos[1]
+
+        if (direction == RIGHT):
+            self.board[startX][startY] = EMPTY_SPACE
+            self.board[endX][endY + 1] = char
+
+            car.startPos = [startX, startY + 1]
+            car.endPos = [endX, endY + 1]
+
+        elif (direction == LEFT):
+            self.board[endX][endY] = EMPTY_SPACE
+            self.board[startX][startY - 1] = char
+
+            car.startPos = [startX, startY - 1]
+            car.endPos = [endX, endY - 1]
+        elif (direction == UP):
+            self.board[endX][endY] = EMPTY_SPACE
+            self.board[startX - 1][startY] = char
+
+            car.startPos = [startX - 1, startY]
+            car.endPos = [endX - 1, endY]
+        elif (direction == DOWN):
+            self.board[startX][startY] = EMPTY_SPACE
+            self.board[endX + 1][endY] = char
+
+            car.startPos = [startX + 1, startY]
+            car.endPos = [endX + 1, endY]
+
+        print("After move: ")
+        self.printBoard()
+        car.printCar()
 
     def getEndPos(self, i, j, orient, length):
         if (orient == HORIZONTAL):
@@ -104,10 +156,13 @@ class Board:
 
     def printBoard(self):
         for i, row in enumerate(self.board):
-            print(i, row)
+            print(i, "".join(row))
 
 
 def rushhour(heuristic, start):
     game = Board(start)
+    print("Start:")
     game.printBoard()
-    game.parseBoard()
+    game.parseCars()
+
+# TODO: Check validity of moving car
