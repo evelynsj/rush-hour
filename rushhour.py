@@ -1,6 +1,9 @@
 # COMMAND: rushhour(0, ["--B---","--B---","XXB---","--AA--","------","------"])
 # COMMAND: rushhour(0, ["--B---","--B---","--B-XX","--AA--","------","------"])
 
+import copy
+import heapq
+
 EMPTY_SPACE = '-'
 HORIZONTAL = "horizontal"
 VERTICAL = "vertical"
@@ -9,6 +12,20 @@ LEFT = "left"
 UP = "up"
 DOWN = "down"
 
+class PriorityQueue:
+    def __init__(self, heap=[]):
+        self.heap = heap # turn into max heap by making priority negative
+        self.count = 0
+    
+    def push(self, state, value):
+        heapq.heappush(self.heap, (-1 * value, self.count, state)) # use count as a tiebreaker when priorities are the same 
+        self.count += 1
+    
+    def pop(self):
+        return heapq.heappop(self.heap)
+
+    def size(self):
+        return len(self.heap)
 
 class Car:
     def __init__(self, char, orient, length, startPos, endPos):
@@ -18,7 +35,66 @@ class Car:
         self.startPos = startPos
         self.endPos = endPos
 
+    def possibleMoves(self, state):
+        moves = []
+        startX = self.startPos[0]
+        startY = self.startPos[1]
+        endX = self.endPos[0]
+        endY = self.endPos[1]
+
+        if (self.orientation == HORIZONTAL):
+            # can move right
+            if (endY + 1 < state.width) and (state.isEmpty(endX, endY + 1)):
+                moves.append(RIGHT)
+            # can move left
+            if (startY - 1 >= 0) and (state.isEmpty(startX, startY - 1)):
+                moves.append(LEFT)
+
+        elif (self.orientation == VERTICAL):
+            # can move up
+            if (startX - 1 >= 0) and (state.isEmpty(startX - 1, startY)):
+                moves.append(UP)
+            # can move down
+            if (endX + 1 < state.height) and (state.isEmpty(endX + 1, endY)):
+                moves.append(DOWN)
+
+        # print(moves)
+        return moves
+
+    def moveCar(self, direction, state):
+        board = state.board
+        startX = self.startPos[0]
+        startY = self.startPos[1]
+        endX = self.endPos[0]
+        endY = self.endPos[1]
+
+        if (direction == RIGHT):
+            board[startX][startY] = EMPTY_SPACE
+            board[endX][endY + 1] = self.character
+
+            self.startPos = [startX, startY + 1]
+            self.endPos = [endX, endY + 1]
+        elif (direction == LEFT):
+            board[endX][endY] = EMPTY_SPACE
+            board[startX][startY - 1] = self.character
+
+            self.startPos = [startX, startY - 1]
+            self.endPos = [endX, endY - 1]
+        elif (direction == UP):
+            board[endX][endY] = EMPTY_SPACE
+            board[startX - 1][startY] = self.character
+
+            self.startPos = [startX - 1, startY]
+            self.endPos = [endX - 1, endY]
+        elif (direction == DOWN):
+            board[startX][startY] = EMPTY_SPACE
+            board[endX + 1][endY] = self.character
+
+            self.startPos = [startX + 1, startY]
+            self.endPos = [endX + 1, endY]
+
     def printCar(self):
+        print("***Print Car***")
         print("Character: ", self.character)
         print("Orientation: ", self.orientation)
         print("Length: ", self.length)
@@ -27,11 +103,11 @@ class Car:
 
 
 class Board:
-    def __init__(self, start):
+    def __init__(self, start, width=6, height=6, cars=dict()):
         self.board = self.parseBoard(start)
-        self.width = 6
-        self.height = 6
-        self.cars = dict()
+        self.width = width
+        self.height = height
+        self.cars = cars
 
     def parseBoard(self, start):
         board = []
@@ -68,48 +144,9 @@ class Board:
                     endPos = self.getEndPos(i, j, orientation, length)
 
                     car = Car(character, orientation, length, startPos, endPos)
-                    # self.cars.append(car)
                     self.cars[character] = car
 
                 visitedBoard[i][j] = True
-
-    def moveCar(self, char, direction):
-
-        car = self.cars[char]
-        startX = car.startPos[0]
-        startY = car.startPos[1]
-        endX = car.endPos[0]
-        endY = car.endPos[1]
-
-        if (direction == RIGHT):
-            self.board[startX][startY] = EMPTY_SPACE
-            self.board[endX][endY + 1] = char
-
-            car.startPos = [startX, startY + 1]
-            car.endPos = [endX, endY + 1]
-
-        elif (direction == LEFT):
-            self.board[endX][endY] = EMPTY_SPACE
-            self.board[startX][startY - 1] = char
-
-            car.startPos = [startX, startY - 1]
-            car.endPos = [endX, endY - 1]
-        elif (direction == UP):
-            self.board[endX][endY] = EMPTY_SPACE
-            self.board[startX - 1][startY] = char
-
-            car.startPos = [startX - 1, startY]
-            car.endPos = [endX - 1, endY]
-        elif (direction == DOWN):
-            self.board[startX][startY] = EMPTY_SPACE
-            self.board[endX + 1][endY] = char
-
-            car.startPos = [startX + 1, startY]
-            car.endPos = [endX + 1, endY]
-
-        print("After move: ")
-        self.printBoard()
-        car.printCar()
 
     def getEndPos(self, i, j, orient, length):
         if (orient == HORIZONTAL):
@@ -143,6 +180,15 @@ class Board:
         elif i + 1 < self.height and not visited[i + 1][j] and self.board[i + 1][j] == char:
             return VERTICAL
 
+    def isGoal(self):
+        GOAL_END = [2, 5]
+        specialCar = self.cars["X"]
+
+        return specialCar.endPos == GOAL_END
+
+    def isEmpty(self, i, j):
+        return self.board[i][j] == EMPTY_SPACE
+
     def createBooleanBoard(self):
         board = []
 
@@ -159,10 +205,81 @@ class Board:
             print(i, "".join(row))
 
 
+class Game:
+    def __init__(self, start, path=[]):
+        self.frontier = PriorityQueue()
+        self.generated = [start.board]
+        self.path = path
+
+    def play(self, start):
+        # TODO: heuristic
+        explored = 0
+        zero = 0 # TODO: change for dynamic heuristic
+        self.frontier.push(start, zero) # TODO: implement heuristic
+
+        # while frontier is not empty
+        while (self.frontier.size()):
+            state = self.frontier.pop()[2]  # pop from frontier
+            explored += 1
+            self.path.append(state.board)
+
+            if (state.isGoal()): # check if it's a winning state
+                print("Goal found")
+                return self.path, explored
+            else:
+                newStates = self.generateNewStates(
+                    state)  # generate new states
+                for state in newStates:
+                    self.frontier.push(state, zero) #TODO: implement heuristic
+        
+
+    def generateNewStates(self, state):
+        new = []
+
+        for key in state.cars:
+            car = state.cars[key]
+
+            # if there is/are possible move(s), create a new state and add that to the list
+            # check possible moves for each car in the state
+            moves = car.possibleMoves(state)
+            if (moves):
+                for move in moves:
+                    newState = copy.deepcopy(state)  # create a new state
+                    newCar = newState.cars[key]
+                    newCar.moveCar(move, newState)
+
+                    if (newState.board not in self.generated):
+                        new.append(newState)  # add new state
+                        self.generated.append(newState.board)
+
+        return new
+
+    def printGenerated(self):
+        print("***Generated list***")
+        for board in self.generated:
+            print("State")
+            for i, row in enumerate(board):
+                print(i, "".join(row))
+
+    def printFrontier(self):
+        print("***Frontier list***")
+        for state in self.frontier.heap:
+            print("State heuristic:", state[0])
+            state[2].printBoard()
+
+
 def rushhour(heuristic, start):
-    game = Board(start)
-    print("Start:")
-    game.printBoard()
-    game.parseCars()
+
+    startBoard = Board(start)
+    startBoard.parseCars()
+    game = Game(startBoard)
+    path, explored = game.play(startBoard)
+    for state in path:
+        for row in state:
+            print("".join(row))
+        print("\n")
+    
+    print("Total moves:", len(path) - 1)
+    print("Total states explored:", explored)
 
 # TODO: Check validity of moving car
