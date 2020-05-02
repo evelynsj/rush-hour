@@ -106,13 +106,14 @@ class Car:
 
 
 class Board:
-    def __init__(self, start, width=6, height=6, cars=dict(), gn=0, hn=0):
+    def __init__(self, start, width=6, height=6, cars=dict(), gn=0, hn=0, path=[]):
         self.board = self.parseBoard(start)
         self.width = width
         self.height = height
         self.cars = cars
         self.gn = gn
         self.hn = hn
+        self.path = path # path from start node
 
     def parseBoard(self, start):
         board = []
@@ -209,50 +210,41 @@ class Board:
         for i, row in enumerate(self.board):
             print(i, "".join(row))
 
-
 class Game:
     def __init__(self, start, heuristic, path=[]):
         self.frontier = PriorityQueue()
         self.generated = [start.board]
         self.heuristic = heuristic
-        self.path = path
 
     def play(self, start):
 
         self.evaluateHeuristic(start, self.heuristic)
         fn = start.gn + start.hn
+        start.path.append(start)
 
         explored = 0
         self.frontier.push(start, fn)
 
-        # maxI = 2
-        # i = 0
-
         # while frontier is not empty
         while (self.frontier.size()):
-            # if (i == maxI):
-            #     break
             state = self.frontier.pop()[2]  # pop from frontier
-            # print("Popped state:")
-            # state.printBoard()
             explored += 1
-            # self.path.append(state.board)
 
             if (state.isGoal()):  # check if it's a winning state
                 print("Goal found")
-                # return self.path, explored
-                return explored
+                return state.path, explored
             else:
                 newStates = self.generateNewStates(
                     state)  # generate new states
-                # print("New states:")
                 for newState in newStates:
                     newState.gn = state.gn + 1
                     self.evaluateHeuristic(newState, self.heuristic)
                     fn = newState.gn + newState.hn
+
+                    newState.path = copy.deepcopy(state.path)
+                    newState.path.append(newState)
+
                     self.frontier.push(newState, fn)
-            # i += 1
-        # print(explored)
 
     def generateNewStates(self, state):
         new = []
@@ -280,8 +272,6 @@ class Game:
             state.hn = self.calculateBlocking(state)
         # TODO: custom heuristic
 
-        # return state.gn + state.hn
-
     def calculateBlocking(self, state):
         board = state.board
         endY = state.cars['X'].endPos[1]
@@ -307,19 +297,25 @@ class Game:
             print("State heuristic:", state[0])
             state[2].printBoard()
 
+def printResult(path, explored):
+    for state in path:
+        state.printBoard()
+        print("\n")
+
+    print("Total moves:", len(path) - 1)
+    print("Total states explored:", explored)
+
 
 def rushhour(heuristic, start):
     startBoard = Board(start)
     startBoard.parseCars()
     game = Game(startBoard, heuristic)
-    explored = game.play(startBoard)
+    path, explored = game.play(startBoard)
+    printResult(path, explored)
+
     # path, explored = game.play(startBoard)
-    # for state in path:
-    #     for row in state:
-    #         print("".join(row))
-    #     print("\n")
 
     # print("Total moves:", len(path) - 1)
-    print("Total states explored:", explored)
+    # print("Total states explored:", explored)
 
 # TODO: Check validity of moving car
