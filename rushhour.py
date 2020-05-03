@@ -1,17 +1,28 @@
-# COMMAND: rushhour(0, ["--B---","--B---","XXB---","--AA--","------","------"])
+# COMMAND: 
+# rushhour(1, ["--B---","--B---","XXB---","--AA--","------","------"])
 # COMMAND: rushhour(0, ["--B---","--B---","--B-XX","--AA--","------","------"])
+
+'''
+COMMANDS:
+rushhour(0, ["--B---","--B---","XXB---","--AA--","------","------"]) # prompt
+rushhour(0, ["OOOP--", "--AP--","XXAP--", "Q-----", "QGGCCD", "Q----D"]) # beginner
+rushhour(0, ["--OPPP", "--O--A", "XXO--A", "-CC--Q", "-----Q","--RRRQ"]) # intermediate
+rushhour(0, ["-ABBO-", "-ACDO-", "XXCDO-", "PJFGG-", "PJFH--", "PIIH--"]) # advanced
+rushhour(0, ["OOO--P", "-----P", "--AXXP", "--ABCC", "D-EBFF", "D-EQQQ"]) # expert
+'''
 
 import copy
 import heapq
 
 EMPTY_SPACE = '-'
+# orientation
 HORIZONTAL = "horizontal"
 VERTICAL = "vertical"
+# moves
 RIGHT = "right"
 LEFT = "left"
 UP = "up"
 DOWN = "down"
-
 
 class PriorityQueue:
     def __init__(self, heap=[]):
@@ -61,7 +72,6 @@ class Car:
             if (endX + 1 < state.height) and (state.isEmpty(endX + 1, endY)):
                 moves.append(DOWN)
 
-        # print(moves)
         return moves
 
     def moveCar(self, direction, state):
@@ -113,12 +123,12 @@ class Board:
         self.cars = cars
         self.gn = gn
         self.hn = hn
-        self.path = path # path from start node
+        self.path = path  # path from start node
 
     def parseBoard(self, start):
         board = []
 
-        for row in start:
+        for row in start: # turn string into list of individual characters so that program can change the character
             board.append(list(row))
 
         return board
@@ -210,6 +220,7 @@ class Board:
         for i, row in enumerate(self.board):
             print(i, "".join(row))
 
+
 class Game:
     def __init__(self, start, heuristic, path=[]):
         self.frontier = PriorityQueue()
@@ -227,11 +238,11 @@ class Game:
 
         # while frontier is not empty
         while (self.frontier.size()):
+
             state = self.frontier.pop()[2]  # pop from frontier
             explored += 1
 
             if (state.isGoal()):  # check if it's a winning state
-                print("Goal found")
                 return state.path, explored
             else:
                 newStates = self.generateNewStates(
@@ -269,20 +280,46 @@ class Game:
 
     def evaluateHeuristic(self, state, heuristic):
         if (heuristic == 0):  # implement blocking heuristic
-            state.hn = self.calculateBlocking(state)
-        # TODO: custom heuristic
+            state.hn, _ = self.calculateBlocking(state)
+        elif (heuristic == 1):
+            state.hn = self.calculateCustom(state)
 
     def calculateBlocking(self, state):
         board = state.board
         endY = state.cars['X'].endPos[1]
         blocked = set()
 
+        if state.isGoal():
+            return 0, {}
+
         for j in range(endY + 1, state.width):
             # check if there is car blocking X to the right
-            if (board[2][j] != EMPTY_SPACE and board[2][j not in blocked]):
-                blocked.add(state.board[2][j])
+            if (board[2][j] != EMPTY_SPACE and state.cars[board[2][j]] not in blocked):
+                blocked.add(state.cars[board[2][j]])
 
-        return 1 + len(blocked)
+        return 1 + len(blocked), blocked
+
+    # Custom heuristics take into account cars that are blocking the cars blocking 'X'
+    def calculateCustom(self, state):
+        board = state.board
+        numBlocking, blocking = self.calculateBlocking(state)
+        length = 0
+        # for each car in blocking:
+        for car in blocking:  # cars that are blocking X
+            startX = car.startPos[0]
+            startY = car.startPos[1]
+            endX = car.endPos[0]
+            endY = car.endPos[1]
+            blocked = set()
+            for i in range(endX + 1, state.height):  # check if blocked downwards
+                if (board[i][endY] != EMPTY_SPACE and state.cars[board[i][endY]] not in blocked):
+                    blocked.add(state.cars[board[i][endY]])
+            for i in range(0, startX):
+                if (board[i][startY] != EMPTY_SPACE and state.cars[board[i][startY]] not in blocked):
+                    blocked.add(state.cars[board[i][startY]])
+            length += len(blocked)
+
+        return numBlocking + length
 
     def printGenerated(self):
         print("***Generated list***")
@@ -297,8 +334,10 @@ class Game:
             print("State heuristic:", state[0])
             state[2].printBoard()
 
+
 def printResult(path, explored):
     for state in path:
+        print(state.gn + state.hn)
         state.printBoard()
         print("\n")
 
@@ -312,10 +351,3 @@ def rushhour(heuristic, start):
     game = Game(startBoard, heuristic)
     path, explored = game.play(startBoard)
     printResult(path, explored)
-
-    # path, explored = game.play(startBoard)
-
-    # print("Total moves:", len(path) - 1)
-    # print("Total states explored:", explored)
-
-# TODO: Check validity of moving car
