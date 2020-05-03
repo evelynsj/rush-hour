@@ -1,5 +1,41 @@
 # COMMAND: rushhour(0, ["--B---","--B---","XXB---","--AA--","------","------"])
+# rushhour(1, ["--B---","--B---","XXB---","--AA--","------","------"])
 # COMMAND: rushhour(0, ["--B---","--B---","--B-XX","--AA--","------","------"])
+
+# Beginner:
+# COMMAND: rushhour(0, ["OOOP--", "--AP--","XXAP--", "Q-----", "QGGCCD", "Q----D"])
+# COMMAND: rushhour(1, ["OOOP--", "--AP--","XXAP--", "Q-----", "QGGCCD", "Q----D"])
+
+# Intermediate:
+# COMMAND: rushhour(0, ["--OPPP", "--O--A", "XXO--A", "-CC--Q", "-----Q","--RRRQ"])
+# COMMAND: rushhour(1, ["--OPPP", "--O--A", "XXO--A", "-CC--Q", "-----Q","--RRRQ"])
+
+# Advanced:
+# COMMAND: rushhour(0, ["-ABBO-", "-ACDO-", "XXCDO-", "PJFGG-", "PJFH--", "PIIH--"])
+# COMMAND: rushhour(1, ["-ABBO-", "-ACDO-", "XXCDO-", "PJFGG-", "PJFH--", "PIIH--"])
+
+# Expert:
+# COMMAND: rushhour(0, ["OOO--P", "-----P", "--AXXP", "--ABCC", "D-EBFF", "D-EQQQ"])
+# COMMAND: rushhour(1, ["OOO--P", "-----P", "--AXXP", "--ABCC", "D-EBFF", "D-EQQQ"])
+
+'''
+Beginner:
+- blocking: 18, 289
+- custom: 18, 252
+
+Intermediate:
+- blocking: 15, 185
+- custom: 15, 169
+
+Advanced:
+- blocking: 30, 476
+- custom: 30, 462
+
+Expert:
+- blocking: 53, 2915
+- custom:
+
+'''
 
 import copy
 import heapq
@@ -227,6 +263,7 @@ class Game:
 
         # while frontier is not empty
         while (self.frontier.size()):
+
             state = self.frontier.pop()[2]  # pop from frontier
             explored += 1
 
@@ -269,21 +306,46 @@ class Game:
 
     def evaluateHeuristic(self, state, heuristic):
         if (heuristic == 0):  # implement blocking heuristic
-            state.hn = self.calculateBlocking(state)
-        # TODO: custom heuristic
+            state.hn, _ = self.calculateBlocking(state)
+        elif (heuristic == 1):
+            state.hn = self.calculateCustom(state)
 
     def calculateBlocking(self, state):
         board = state.board
         endY = state.cars['X'].endPos[1]
         blocked = set()
+        
+        if state.isGoal():
+            return 0, {}
 
         for j in range(endY + 1, state.width):
             # check if there is car blocking X to the right
-            if (board[2][j] != EMPTY_SPACE and board[2][j not in blocked]):
-                blocked.add(state.board[2][j])
+            if (board[2][j] != EMPTY_SPACE and state.cars[board[2][j]] not in blocked):
+                blocked.add(state.cars[board[2][j]])
 
-        return 1 + len(blocked)
+        return 1 + len(blocked), blocked
 
+    def calculateCustom(self, state):
+        board = state.board
+        numBlocking, blocking = self.calculateBlocking(state)
+        length = 0
+        # for each car in blocking:
+        for car in blocking: # cars that are blocking X
+            startX = car.startPos[0]
+            startY = car.startPos[1]
+            endX = car.endPos[0]
+            endY = car.endPos[1]
+            blocked = set()
+            for i in range(endX + 1, state.height): # check if blocked downwards
+                if (board[i][endY] != EMPTY_SPACE and state.cars[board[i][endY]] not in blocked):
+                    blocked.add(state.cars[board[i][endY]])
+            for i in range(0, startX):
+                if (board[i][startY] != EMPTY_SPACE and state.cars[board[i][startY]] not in blocked):
+                    blocked.add(state.cars[board[i][startY]])
+            length += len(blocked)
+        
+        return numBlocking + length
+        
     def printGenerated(self):
         print("***Generated list***")
         for board in self.generated:
@@ -299,6 +361,7 @@ class Game:
 
 def printResult(path, explored):
     for state in path:
+        print(state.gn + state.hn)
         state.printBoard()
         print("\n")
 
@@ -310,12 +373,8 @@ def rushhour(heuristic, start):
     startBoard = Board(start)
     startBoard.parseCars()
     game = Game(startBoard, heuristic)
+    # game.play(startBoard)
     path, explored = game.play(startBoard)
     printResult(path, explored)
 
-    # path, explored = game.play(startBoard)
-
-    # print("Total moves:", len(path) - 1)
-    # print("Total states explored:", explored)
-
-# TODO: Check validity of moving car
+# TODO: for XX, look to left as well duh
