@@ -1,52 +1,28 @@
-# COMMAND: rushhour(0, ["--B---","--B---","XXB---","--AA--","------","------"])
+# COMMAND: 
 # rushhour(1, ["--B---","--B---","XXB---","--AA--","------","------"])
 # COMMAND: rushhour(0, ["--B---","--B---","--B-XX","--AA--","------","------"])
 
-# Beginner:
-# COMMAND: rushhour(0, ["OOOP--", "--AP--","XXAP--", "Q-----", "QGGCCD", "Q----D"])
-# COMMAND: rushhour(1, ["OOOP--", "--AP--","XXAP--", "Q-----", "QGGCCD", "Q----D"])
-
-# Intermediate:
-# COMMAND: rushhour(0, ["--OPPP", "--O--A", "XXO--A", "-CC--Q", "-----Q","--RRRQ"])
-# COMMAND: rushhour(1, ["--OPPP", "--O--A", "XXO--A", "-CC--Q", "-----Q","--RRRQ"])
-
-# Advanced:
-# COMMAND: rushhour(0, ["-ABBO-", "-ACDO-", "XXCDO-", "PJFGG-", "PJFH--", "PIIH--"])
-# COMMAND: rushhour(1, ["-ABBO-", "-ACDO-", "XXCDO-", "PJFGG-", "PJFH--", "PIIH--"])
-
-# Expert:
-# COMMAND: rushhour(0, ["OOO--P", "-----P", "--AXXP", "--ABCC", "D-EBFF", "D-EQQQ"])
-# COMMAND: rushhour(1, ["OOO--P", "-----P", "--AXXP", "--ABCC", "D-EBFF", "D-EQQQ"])
-
 '''
-Beginner:
-- blocking: 18, 289
-- custom: 18, 252
-
-Intermediate:
-- blocking: 15, 185
-- custom: 15, 169
-
-Advanced:
-- blocking: 30, 476
-- custom: 30, 462
-
-Expert:
-- blocking: 53, 2915
-- custom: 53, 2549
+COMMANDS:
+rushhour(0, ["--B---","--B---","XXB---","--AA--","------","------"]) # prompt
+rushhour(0, ["OOOP--", "--AP--","XXAP--", "Q-----", "QGGCCD", "Q----D"]) # beginner
+rushhour(0, ["--OPPP", "--O--A", "XXO--A", "-CC--Q", "-----Q","--RRRQ"]) # intermediate
+rushhour(0, ["-ABBO-", "-ACDO-", "XXCDO-", "PJFGG-", "PJFH--", "PIIH--"]) # advanced
+rushhour(0, ["OOO--P", "-----P", "--AXXP", "--ABCC", "D-EBFF", "D-EQQQ"]) # expert
 '''
 
 import copy
 import heapq
 
 EMPTY_SPACE = '-'
+# orientation
 HORIZONTAL = "horizontal"
 VERTICAL = "vertical"
+# moves
 RIGHT = "right"
 LEFT = "left"
 UP = "up"
 DOWN = "down"
-
 
 class PriorityQueue:
     def __init__(self, heap=[]):
@@ -152,7 +128,7 @@ class Board:
     def parseBoard(self, start):
         board = []
 
-        for row in start:
+        for row in start: # turn string into list of individual characters so that program can change the character
             board.append(list(row))
 
         return board
@@ -323,6 +299,7 @@ class Game:
 
         return 1 + len(blocked), blocked
 
+    # Custom heuristics take into account cars that are blocking the cars blocking 'X'
     def calculateCustom(self, state):
         board = state.board
         numBlocking, blocking = self.calculateBlocking(state)
